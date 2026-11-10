@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Takeoff Activation Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+[hidden]{display:none!important}
+body{margin:0}
+
+/* Layout: summary strip on top, paired analysis panels in a 2-col grid, editable source table at the bottom, config drawer on the right */
+:root{
+  --bg:#f2f4f7; --surface:#ffffff; --surface-2:#f7f8fa; --ink:#15202c; --muted:#5b6878; --line:#dce2e9;
+  --dep:#2350a3; --arr:#c98a00; --accent:#2350a3; --warn:#b4540a; --warn-bg:#fdf0e3; --ok:#1f7a4d;
+  --chip:#e6ecf5; --chip-ink:#1b3a73;
+  --f-display:"Space Grotesk",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f141b; --surface:#161d27; --surface-2:#1b2430; --ink:#e7ecf2; --muted:#93a1b2; --line:#2a3443;
+  --dep:#76a3f5; --arr:#f0b73a; --accent:#76a3f5; --warn:#f2a25c; --warn-bg:#3a2717; --ok:#5fc795;
+  --chip:#22314a; --chip-ink:#bcd2fa; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141b; --surface:#161d27; --surface-2:#1b2430; --ink:#e7ecf2; --muted:#93a1b2; --line:#2a3443;
+  --dep:#76a3f5; --arr:#f0b73a; --accent:#76a3f5; --warn:#f2a25c; --warn-bg:#3a2717; --ok:#5fc795;
+  --chip:#22314a; --chip-ink:#bcd2fa; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:clamp(24px,3.4vw,34px);font-weight:700}
+h2{font-size:16px;font-weight:600}
+.eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+header{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between}
+header .meta{display:flex;flex-direction:column;gap:6px;min-width:0}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+button,.btn{font:inherit;font-weight:500;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+button.danger{color:var(--warn)}
+button.confirming{background:var(--warn);border-color:var(--warn);color:var(--surface)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:5px 8px;min-width:0}
+.filters{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:end;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.filters label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.filters .check{flex-direction:row;align-items:center;gap:8px;color:var(--ink);font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.kpi .v{font-family:var(--f-display);font-size:30px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi .l{font-size:12px;color:var(--muted)}
+.kpi .s{font-size:12px;color:var(--muted);margin-top:4px}
+@media (max-width:900px){.kpis{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:480px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.span2{grid-column:1/-1}
+#weekly svg{display:block;max-height:280px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.legend{display:flex;gap:12px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.bars{display:flex;flex-direction:column;gap:8px}
+.bar-row{display:grid;grid-template-columns:minmax(110px,170px) 1fr 34px;gap:10px;align-items:center}
+.bar-lab{display:flex;gap:8px;align-items:center;min-width:0}
+.bar-lab span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.code{font-family:var(--f-mono);font-size:11.5px;font-weight:600;background:var(--chip);color:var(--chip-ink);border-radius:4px;padding:1px 6px;white-space:nowrap}
+.track{height:14px;background:var(--surface-2);border-radius:3px;display:flex;overflow:hidden}
+.track b{display:block;height:100%}
+.track .d{background:var(--dep)} .track .a{background:var(--arr)}
+.bar-val{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.bar-sub{font-size:11.5px;color:var(--muted)}
+svg text{fill:var(--muted);font-family:var(--f-body);font-size:11px}
+svg .val{fill:var(--ink);font-weight:600}
+svg .grid-l{stroke:var(--line)}
+.routes{display:flex;flex-direction:column}
+.route{display:grid;grid-template-columns:28px 1fr 40px;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line)}
+.route:first-child{border-top:0}
+.route .rk{font-family:var(--f-mono);color:var(--muted);font-size:12px}
+.route .path{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-width:0}
+.route .arrow{color:var(--muted)}
+.route .cnt{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+.matrix th,.matrix td{text-align:center;padding:0;font-variant-numeric:tabular-nums}
+.matrix th{font-family:var(--f-mono);font-size:11px;font-weight:600;color:var(--muted);padding:6px 4px}
+.matrix th.rowh{text-align:right;padding-right:10px}
+.matrix td div{margin:2px;border-radius:4px;height:34px;min-width:38px;display:flex;align-items:center;justify-content:center;font-weight:600;background:var(--surface-2)}
+.matrix td div.z{color:transparent}
+.findings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px;margin:0;padding:0;list-style:none}
+@media (max-width:700px){.findings{grid-template-columns:minmax(0,1fr)}}
+.findings li{display:flex;flex-direction:column;gap:2px;padding-left:12px;border-left:2px solid var(--line)}
+.findings li strong{font-weight:600}
+.dq{display:flex;flex-direction:column;gap:8px}
+.flag{background:var(--warn-bg);color:var(--ink);border-radius:8px;padding:10px 12px;font-size:13px}
+.flag b{color:var(--warn)}
+.okmsg{color:var(--ok);font-size:13px}
+.edit th{text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:8px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+.edit td{padding:5px 4px;border-bottom:1px solid var(--line);vertical-align:middle}
+.edit input,.edit select{width:100%;font-size:13px;padding:4px 6px}
+.edit .w-id{width:100px}.edit .w-st{width:120px}.edit .w-dt{width:200px}.edit .w-t{width:64px}.edit .w-ap{min-width:200px}
+.edit tr.out td{opacity:.45}
+.edit tr.dup td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
+.table-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(460px,100%);background:var(--surface);border-left:1px solid var(--line);z-index:20;overflow-y:auto;padding:calc(16px + env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) 18px;display:flex;flex-direction:column;gap:18px;box-shadow:-12px 0 32px rgba(0,0,0,.12)}
+.drawer h3{font-size:14px}
+.drawer section{display:flex;flex-direction:column;gap:8px}
+.drawer .toggles{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.drawer label.check{display:flex;gap:8px;align-items:center;font-size:13px}
+.dir td{padding:3px 2px}.dir input{width:100%;font-size:12.5px;padding:4px 6px}
+.dir .c3{width:62px}
+textarea{width:100%;min-height:110px;font-family:var(--f-mono);font-size:12px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;z-index:30}
+.empty{color:var(--muted);font-size:13px;padding:12px 0}
+@media (prefers-reduced-motion:no-preference){.track b{transition:width .3s ease}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="meta">
+      <span class="eyebrow">Times Prime · Takeoff · Pass activations</span>
+      <h1 id="title">Airport Activation Dashboard</h1>
+      <span class="muted" id="period"></span>
+    </div>
+    <div class="actions">
+      <button id="btnCopy">Copy as CSV</button>
+      <button id="btnConfig" class="primary">Configure</button>
+    </div>
+  </header>
+
+  <div class="filters" id="filters">
+    <label>From date<input type="date" id="fFrom"></label>
+    <label>To date<input type="date" id="fTo"></label>
+    <label>Airport (either end)<select id="fAirport"></select></label>
+    <label class="check"><input type="checkbox" id="fDedupe"> Remove exact duplicate rows</label>
+    <button id="fClear">Clear filters</button>
+  </div>
+
+  <div class="kpis" id="sec-kpis"></div>
+
+  <div class="grid">
+    <section class="panel" id="sec-airports">
+      <div class="panel-h"><h2>Airport selections</h2><div class="legend"><span><i style="background:var(--dep)"></i>Departure</span><span><i style="background:var(--arr)"></i>Arrival</span></div></div>
+      <div class="bars" id="airportBars"></div>
+    </section>
+    <section class="panel" id="sec-terminals">
+      <div class="panel-h"><h2>Terminal selections</h2><div class="legend"><span><i style="background:var(--dep)"></i>Departure</span><span><i style="background:var(--arr)"></i>Arrival</span></div></div>
+      <div class="bars" id="terminalBars"></div>
+    </section>
+    <section class="panel span2" id="sec-weekly">
+      <div class="panel-h"><h2>Activations per week</h2><span class="bar-sub">Week starting Monday</span></div>
+      <div id="weekly"></div>
+    </section>
+    <section class="panel" id="sec-routes">
+      <div class="panel-h"><h2>Route ranking</h2><span class="bar-sub" id="routeNote"></span></div>
+      <div class="routes" id="routes"></div>
+    </section>
+    <section class="panel" id="sec-matrix">
+      <div class="panel-h"><h2>Origin → destination</h2><span class="bar-sub">Rows: from · Columns: to</span></div>
+      <div class="scroll"><table class="matrix" id="matrix"></table></div>
+    </section>
+  </div>
+
+  <section class="panel" id="sec-findings">
+    <h2>Key findings</h2>
+    <ul class="findings" id="findings"></ul>
+  </section>
+
+  <section class="panel" id="sec-table">
+    <div class="panel-h">
+      <h2>Activation journeys <span class="muted num" id="rowCount" style="font-weight:400;font-size:13px"></span></h2>
+      <div class="table-tools">
+        <button id="btnAdd">Add row</button>
+        <button id="btnImport">Import CSV</button>
+      </div>
+    </div>
+    <p class="bar-sub" style="margin:0">Edit any cell; the dashboard updates when you leave the field. Rows outside the current filter are faded. Rows with an orange edge are exact duplicates.</p>
+    <div class="scroll"><table class="edit" id="editTable"></table></div>
+    <div id="importBox" hidden style="display:flex;flex-direction:column;gap:8px">
+      <span class="bar-sub">Paste CSV with the header: User ID, Status, Activation Date, From Airport, From Terminal, To Airport, To Terminal. Dates like 07-Nov-2026 11:07:30.</span>
+      <input type="file" id="importFile" accept=".csv,text/csv">
+      <textarea id="importText" placeholder="User ID,Status,Activation Date,From Airport,From Terminal,To Airport,To Terminal"></textarea>
+      <div class="table-tools"><button id="importReplace" class="primary">Replace all rows</button><button id="importAppend">Append rows</button><button id="importCancel">Cancel</button><span class="bar-sub" id="importMsg"></span></div>
+    </div>
+    <div id="copyBox" hidden style="display:flex;flex-direction:column;gap:8px">
+      <span class="bar-sub">Copy was blocked here. Select the text below and copy it.</span>
+      <textarea id="copyText" readonly></textarea>
+      <div><button id="copyClose">Close</button></div>
+    </div>
+  </section>
+</div>
+
+<aside class="drawer" id="drawer" hidden>
+  <div class="panel-h"><h2>Configure dashboard</h2><button id="drawerClose">Done</button></div>
+  <section>
+    <h3>Dashboard title</h3>
+    <input id="cfgTitle">
+  </section>
+  <section>
+    <h3>Show sections</h3>
+    <div class="toggles" id="cfgSections"></div>
+  </section>
+  <section>
+    <h3>Route ranking</h3>
+    <label class="check">Show top <input type="number" id="cfgTopN" min="1" max="50" style="width:70px"> routes</label>
+    <label class="check"><input type="checkbox" id="cfgTermRoutes"> Rank by terminal (off = by airport pair)</label>
+  </section>
+  <section>
+    <h3>Bar charts sort by</h3>
+    <select id="cfgSort"><option value="total">Total selections</option><option value="dep">Departure selections</option><option value="arr">Arrival selections</option><option value="name">City name</option></select>
+  </section>
+  <section>
+    <h3>Airport directory</h3>
+    <span class="bar-sub">Short labels used across the charts. Full name must match the data exactly.</span>
+    <div class="scroll"><table class="dir" id="dirTable"></table></div>
+    <div><button id="dirAdd">Add airport</button></div>
+  </section>
+  <section>
+    <h3>Reset</h3>
+    <span class="bar-sub">Restores the 16 original rows, directory and settings.</span>
+    <div><button id="btnReset" class="danger">Reset to original data</button></div>
+  </section>
+</aside>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const KEY='takeoff-activation-board-v1';
+const SEED=[
+["6722185","ACTIVATED","2026-11-07T11:07:30","Chaudhary Charan Singh International Airport","T3","Netaji Subhas Chandra Bose International Airport","T2"],
+["6668328","ACTIVATED","2026-11-05T16:21:09","Indira Gandhi International Airport","T1","Kempegowda International Airport","T2"],
+["6628743","ACTIVATED","2026-11-02T02:57:20","Indira Gandhi International Airport","T3","Chhatrapati Shivaji Maharaj International Airport","T1"],
+["7279089","ACTIVATED","2026-11-01T09:40:46","Chhatrapati Shivaji Maharaj International Airport","T1","Cochin International Airport","T1"],
+["7279089","ACTIVATED","2026-11-01T09:40:46","Chhatrapati Shivaji Maharaj International Airport","T1","Cochin International Airport","T1"],
+["6628743","ACTIVATED","2026-10-20T15:22:45","Indira Gandhi International Airport","T1","Chhatrapati Shivaji Maharaj International Airport","T1"],
+["7191238","ACTIVATED","2026-10-20T09:46:49","Kempegowda International Airport","T1","Rajiv Gandhi International Airport","T1"],
+["7214393","ACTIVATED","2026-10-19T18:18:26","Indira Gandhi International Airport","T1","Chhatrapati Shivaji Maharaj International Airport","T2"],
+["6726304","ACTIVATED","2026-10-17T04:34:07","Indira Gandhi International Airport","T3","Kempegowda International Airport","T2"],
+["6711282","ACTIVATED","2026-10-16T01:01:37","Kempegowda International Airport","T2","Indira Gandhi International Airport","T1"],
+["6858925","ACTIVATED","2026-10-15T02:15:37","Rajiv Gandhi International Airport","T1","Jay Prakash Narayan Airport","T1"],
+["6722185","ACTIVATED","2026-10-11T17:22:46","Netaji Subhas Chandra Bose International Airport","T2","Indira Gandhi International Airport","T3"],
+["6722185","ACTIVATED","2026-10-09T12:04:29","Kempegowda International Airport","T1","Indira Gandhi International Airport","T3"],
+["6627900","ACTIVATED","2026-10-05T16:14:17","Indira Gandhi International Airport","T3","Chhatrapati Shivaji Maharaj International Airport","T2"],
+["6722185","ACTIVATED","2026-09-29T13:13:34","Indira Gandhi International Airport","T1","Kempegowda International Airport","T1"],
+["6901018","ACTIVATED","2026-09-26T12:30:56","Kempegowda International Airport","T1","Kempegowda International Airport","T2"]
+].map(r=>({id:r[0],status:r[1],dt:r[2],fa:r[3],ft:r[4],ta:r[5],tt:r[6]}));
+const SEED_DIR=[
+{name:"Indira Gandhi International Airport",city:"New Delhi",code:"DEL"},
+{name:"Kempegowda International Airport",city:"Bengaluru",code:"BLR"},
+{name:"Chhatrapati Shivaji Maharaj International Airport",city:"Mumbai",code:"BOM"},
+{name:"Netaji Subhas Chandra Bose International Airport",city:"Kolkata",code:"CCU"},
+{name:"Cochin International Airport",city:"Cochin",code:"COK"},
+{name:"Rajiv Gandhi International Airport",city:"Hyderabad",code:"HYD"},
+{name:"Chaudhary Charan Singh International Airport",city:"Lucknow",code:"LKO"},
+{name:"Jay Prakash Narayan Airport",city:"Patna",code:"PAT"}];
+const SECTIONS=[["kpis","Headline numbers"],["airports","Airport selections"],["terminals","Terminal selections"],["weekly","Activations per week"],["routes","Route ranking"],["matrix","Origin → destination"],["findings","Key findings"],["table","Journeys table"]];
+const defaultCfg=()=>({title:"Airport Activation Dashboard",sections:Object.fromEntries(SECTIONS.map(s=>[s[0],true])),topN:10,termRoutes:true,sort:"total"});
+let S;
+function fresh(){return{rows:SEED.map(r=>({...r})),dir:SEED_DIR.map(d=>({...d})),cfg:defaultCfg(),f:{from:"",to:"",airport:"",dedupe:false}}}
+try{const raw=localStorage.getItem(KEY);S=raw?JSON.parse(raw):fresh();S.cfg={...defaultCfg(),...S.cfg,sections:{...defaultCfg().sections,...(S.cfg||{}).sections}};S.f=S.f||{from:"",to:"",airport:"",dedupe:false}}catch(e){S=fresh()}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const pd=s=>{const d=new Date(s);return isNaN(d)?null:d};
+const fmtDay=d=>`${String(d.getDate()).padStart(2,"0")} ${MON[d.getMonth()]} ${d.getFullYear()}`;
+const fmtShort=d=>`${d.getDate()} ${MON[d.getMonth()]}`;
+const dirOf=n=>S.dir.find(d=>d.name===n);
+const lab=n=>{const d=dirOf(n);return d&&d.code?d.code:(d&&d.city?d.city:n)};
+const city=n=>{const d=dirOf(n);return d&&d.city?d.city:n};
+const chip=n=>`<span class="code">${esc(lab(n))}</span>`;
+const plural=(n,w)=>`${n} ${w}${n===1?"":"s"}`;
+const listJoin=a=>a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1];
+const rowKey=r=>[r.id,r.status,r.dt,r.fa,r.ft,r.ta,r.tt].join("|");
+
+function dupSet(){const seen=new Set(),d=new Set();S.rows.forEach((r,i)=>{const k=rowKey(r);if(seen.has(k))d.add(i);else seen.add(k)});return d}
+function inFilter(r){
+  const d=pd(r.dt);
+  if(S.f.from&&(!d||d<new Date(S.f.from+"T00:00:00")))return false;
+  if(S.f.to&&(!d||d>new Date(S.f.to+"T23:59:59")))return false;
+  if(S.f.airport&&r.fa!==S.f.airport&&r.ta!==S.f.airport)return false;
+  return true;
+}
+function data(){const dups=dupSet();return S.rows.filter((r,i)=>!(S.f.dedupe&&dups.has(i))&&inFilter(r))}
+function countBy(rows,fn){const m=new Map();rows.forEach(r=>{const k=fn(r);m.set(k,(m.get(k)||0)+1)});return m}
+
+function sortRows(arr){
+  const s=S.cfg.sort;
+  return arr.sort((a,b)=>s==="name"?a.sortName.localeCompare(b.sortName):(b[s==="dep"?"d":s==="arr"?"a":"t"]-a[s==="dep"?"d":s==="arr"?"a":"t"])||(b.t-a.t)||a.sortName.localeCompare(b.sortName));
+}
+function stackedBars(el,items){
+  if(!items.length){el.innerHTML='<div class="empty">No activations match the filters.</div>';return}
+  const max=Math.max(...items.map(i=>i.t));
+  el.innerHTML=items.map(i=>`<div class="bar-row" title="${esc(i.title)}: ${i.d} departure, ${i.a} arrival">
+    <div class="bar-lab">${i.label}</div>
+    <div><div class="track"><b class="d" style="width:${i.d/max*100}%"></b><b class="a" style="width:${i.a/max*100}%"></b></div><div class="bar-sub num">${i.d} dep · ${i.a} arr</div></div>
+    <div class="bar-val">${i.t}</div></div>`).join("");
+}
+
+function render(){
+  document.title; $("title").textContent=S.cfg.title;
+  const rows=data(), all=S.rows;
+  // period
+  const ds=all.map(r=>pd(r.dt)).filter(Boolean).sort((a,b)=>a-b);
+  $("period").textContent=ds.length?`${fmtDay(ds[0])} – ${fmtDay(ds[ds.length-1])} · ${plural(all.length,"row")} in source`:"No rows";
+  // sections visibility
+  SECTIONS.forEach(([k])=>{$("sec-"+k).hidden=!S.cfg.sections[k]});
+  renderKPIs(rows);renderAirports(rows);renderTerminals(rows);renderWeekly(rows);renderRoutes(rows);renderMatrix(rows);renderFindings(rows);
+  $("rowCount").textContent=`· ${plural(all.length,"row")}, ${rows.length} in view`;
+  markTable();
+}
+function renderKPIs(rows){
+  const users=countBy(rows,r=>r.id);
+  const repeat=[...users.values()].filter(v=>v>1).length;
+  const aps=new Set();rows.forEach(r=>{aps.add(r.fa);aps.add(r.ta)});
+  const ts=new Set();rows.forEach(r=>{ts.add(r.fa+"|"+r.ft);ts.add(r.ta+"|"+r.tt)});
+  const rts=new Set(rows.map(r=>[r.fa,r.ft,r.ta,r.tt].join("|")));
+  const avg=users.size?(rows.length/users.size).toFixed(2):"–";
+  const k=[[rows.length,"Activations","journeys in view"],[users.size,"Unique users",`${avg} activations per user`],[repeat,"Repeat users","2+ activations"],[aps.size,"Airports","selected as from or to"],[ts.size,"Terminals","airport + terminal pairs"],[rts.size,"Unique routes","terminal to terminal"]];
+  $("sec-kpis").innerHTML=k.map(([v,l,s])=>`<div class="kpi"><span class="l">${l}</span><span class="v">${v}</span><span class="s">${s}</span></div>`).join("");
+}
+function renderAirports(rows){
+  const m=new Map();
+  rows.forEach(r=>{[[r.fa,"d"],[r.ta,"a"]].forEach(([n,k])=>{if(!m.has(n))m.set(n,{d:0,a:0});m.get(n)[k]++})});
+  const items=[...m].map(([n,v])=>({d:v.d,a:v.a,t:v.d+v.a,sortName:city(n),title:n,label:`${chip(n)}<span>${esc(city(n))}</span>`}));
+  stackedBars($("airportBars"),sortRows(items));
+}
+function renderTerminals(rows){
+  const m=new Map();
+  rows.forEach(r=>{[[r.fa,r.ft,"d"],[r.ta,r.tt,"a"]].forEach(([n,t,k])=>{const key=n+"|"+t;if(!m.has(key))m.set(key,{n,t,d:0,a:0});m.get(key)[k]++})});
+  const items=[...m.values()].map(v=>({d:v.d,a:v.a,t:v.d+v.a,sortName:city(v.n)+" "+v.t,title:`${v.n} ${v.t}`,label:`<span class="code">${esc(lab(v.n))} ${esc(v.t)}</span><span>${esc(city(v.n))}</span>`}));
+  stackedBars($("terminalBars"),sortRows(items));
+}
+function svgBars(buckets,{h=200,labelEvery=1}={}){
+  const W=620,H=h,L=28,R=8,T=18,B=30,n=buckets.length;
+  if(!n||buckets.every(b=>!b.v))return '<div class="empty">No activations match the filters.</div>';
+  const max=Math.max(1,...buckets.map(b=>b.v));
+  const step=max<=6?1:Math.ceil(max/5);const top=Math.ceil(max/step)*step;
+  const y=v=>T+(H-T-B)*(1-v/top), slot=(W-L-R)/n, bw=Math.min(46,slot*.62);
+  let g="";for(let v=0;v<=top;v+=step)g+=`<line class="grid-l" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`;
+  const bars=buckets.map((b,i)=>{const x=L+slot*i+(slot-bw)/2;return `${b.v?`<rect x="${x}" y="${y(b.v)}" width="${bw}" height="${y(0)-y(b.v)}" rx="3" fill="var(--accent)"><title>${esc(b.label)}: ${b.v}</title></rect><text class="val" x="${x+bw/2}" y="${y(b.v)-5}" text-anchor="middle">${b.v}</text>`:""}${i%labelEvery===0?`<text x="${x+bw/2}" y="${H-B+16}" text-anchor="middle">${esc(b.label)}</text>`:""}`}).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="bar chart">${g}${bars}</svg>`;
+}
+function weekStart(d){const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x}
+function weeks(rows){
+  const ds=rows.map(r=>pd(r.dt)).filter(Boolean);if(!ds.length)return[];
+  const start=weekStart(new Date(Math.min(...ds))),end=weekStart(new Date(Math.max(...ds)));
+  const out=[];for(let w=new Date(start);w<=end;w.setDate(w.getDate()+7))out.push({k:w.getTime(),label:fmtShort(w),v:0});
+  ds.forEach(d=>{const b=out.find(o=>o.k===weekStart(d).getTime());if(b)b.v++});return out;
+}
+function renderWeekly(rows){const w=weeks(rows);$("weekly").innerHTML=svgBars(w,{labelEvery:w.length>10?2:1})}
+function renderHours(rows){
+  const b=["00–04","04–08","08–12","12–16","16–20","20–24"].map(l=>({label:l,v:0}));
+  rows.forEach(r=>{const d=pd(r.dt);if(d)b[Math.floor(d.getHours()/4)].v++});
+  $("hours").innerHTML=svgBars(b);
+}
+function routeList(rows){
+  const byT=S.cfg.termRoutes;
+  const m=new Map();rows.forEach(r=>{const k=byT?[r.fa,r.ft,r.ta,r.tt].join("|"):[r.fa,r.ta].join("|");m.set(k,(m.get(k)||0)+1)});
+  return [...m].map(([k,c])=>{const p=k.split("|");return byT?{fa:p[0],ft:p[1],ta:p[2],tt:p[3],c}:{fa:p[0],ta:p[1],c}})
+    .sort((a,b)=>b.c-a.c||lab(a.fa).localeCompare(lab(b.fa))||lab(a.ta).localeCompare(lab(b.ta))||(a.ft||"").localeCompare(b.ft||"")||(a.tt||"").localeCompare(b.tt||""));
+}
+function renderRoutes(rows){
+  const all=routeList(rows),top=all.slice(0,S.cfg.topN),byT=S.cfg.termRoutes;
+  $("routeNote").textContent=all.length?`Top ${top.length} of ${all.length} · ${byT?"terminal":"airport"} level`:"";
+  if(!top.length){$("routes").innerHTML='<div class="empty">No activations match the filters.</div>';return}
+  let rank=0,prev=null;
+  $("routes").innerHTML=top.map((r,i)=>{if(r.c!==prev){rank=i+1;prev=r.c}
+    const a=`<span class="code">${esc(lab(r.fa))}${byT?" "+esc(r.ft):""}</span>`,b=`<span class="code">${esc(lab(r.ta))}${byT?" "+esc(r.tt):""}</span>`;
+    return `<div class="route" title="${esc(r.fa)} → ${esc(r.ta)}"><span class="rk">#${rank}</span><span class="path">${a}<span class="arrow">→</span>${b}<span class="bar-sub">${esc(city(r.fa))} to ${esc(city(r.ta))}</span></span><span class="cnt">${r.c}</span></div>`}).join("");
+}
+function renderMatrix(rows){
+  const from=[...new Set(rows.map(r=>r.fa))],to=[...new Set(rows.map(r=>r.ta))];
+  const order=a=>a.sort((x,y)=>lab(x).localeCompare(lab(y)));order(from);order(to);
+  if(!rows.length){$("matrix").innerHTML='<tr><td class="empty">No activations match the filters.</td></tr>';return}
+  const m=countBy(rows,r=>r.fa+"|"+r.ta),max=Math.max(...m.values());
+  let h=`<tr><th></th>${to.map(t=>`<th title="${esc(t)}">${esc(lab(t))}</th>`).join("")}</tr>`;
+  from.forEach(f=>{h+=`<tr><th class="rowh" title="${esc(f)}">${esc(lab(f))}</th>${to.map(t=>{const v=m.get(f+"|"+t)||0;const pct=v?Math.round(22+78*v/max):0;
+    return `<td><div class="${v?"":"z"}" style="${v?`background:color-mix(in srgb,var(--dep) ${pct}%,var(--surface-2));color:${pct>55?"var(--surface)":"var(--ink)"}`:""}" title="${esc(lab(f))} → ${esc(lab(t))}: ${v}">${v}</div></td>`}).join("")}</tr>`});
+  $("matrix").innerHTML=h;
+}
+function tops(m){if(!m.size)return{v:0,k:[]};const v=Math.max(...m.values());return{v,k:[...m].filter(e=>e[1]===v).map(e=>e[0])}}
+function renderFindings(rows){
+  const out=[];
+  if(rows.length){
+    const ap=new Map();rows.forEach(r=>{ap.set(r.fa,(ap.get(r.fa)||0)+1);ap.set(r.ta,(ap.get(r.ta)||0)+1)});
+    const t1=tops(ap);const share=Math.round(t1.v/(rows.length*2)*100);
+    out.push(["Most selected airport",`${listJoin(t1.k.map(city))} with ${t1.v} of ${rows.length*2} selections (${share}%).`]);
+    const dep=tops(countBy(rows,r=>r.fa)),arr=tops(countBy(rows,r=>r.ta));
+    out.push(["Top departure vs arrival",`Most departures from ${listJoin(dep.k.map(city))} (${dep.v}); most arrivals into ${listJoin(arr.k.map(city))} (${arr.v}).`]);
+    const tm=new Map();rows.forEach(r=>{[r.fa+"|"+r.ft,r.ta+"|"+r.tt].forEach(k=>tm.set(k,(tm.get(k)||0)+1))});
+    const t2=tops(tm);out.push(["Most selected terminal",`${listJoin(t2.k.map(k=>{const[n,t]=k.split("|");return city(n)+" "+t}))} with ${plural(t2.v,"selection")}${t2.k.length>1?" each":""}.`]);
+    const rl=routeList(rows),rTop=rl.filter(r=>r.c===rl[0].c);
+    out.push(["Top route",rTop.length===rl.length?`All ${rl.length} routes are tied at ${plural(rl[0].c,"activation")}; no route stands out yet.`:
+      rTop.length===1?`${lab(rl[0].fa)}${S.cfg.termRoutes?" "+rl[0].ft:""} → ${lab(rl[0].ta)}${S.cfg.termRoutes?" "+rl[0].tt:""} with ${rl[0].c}; every other route has ${rl[1]?rl[1].c:0} or fewer.`:
+      `${rTop.length} routes tied at ${rl[0].c} activations.`]);
+    const u=countBy(rows,r=>r.id),rep=[...u].filter(e=>e[1]>1).sort((a,b)=>b[1]-a[1]);
+    out.push(["Repeat usage",rep.length?`${plural(rep.length,"user")} activated more than once, covering ${rep.reduce((s,e)=>s+e[1],0)} of ${rows.length} activations. Highest: user ${rep[0][0]} with ${rep[0][1]}.`:"Every user in view activated once."]);
+    const w=weeks(rows),bw=w.length?w.reduce((a,b)=>b.v>a.v?b:a):null;
+    const hrs=rows.map(r=>pd(r.dt)).filter(Boolean),night=hrs.filter(d=>d.getHours()<6).length;
+    out.push(["Timing",`${bw?`Busiest week started ${bw.label} with ${plural(bw.v,"activation")}. `:""}${night} of ${hrs.length} activations happened between midnight and 6 AM.`]);
+  }
+  $("findings").innerHTML=out.length?out.map(([h,t])=>`<li><strong>${esc(h)}</strong><span class="muted">${esc(t)}</span></li>`).join(""):'<li class="empty">No activations match the filters.</li>';
+  // data quality runs on the full source
+  const dq=[],dups=dupSet();
+  if(dups.size)dq.push(`<b>${plural(dups.size,"exact duplicate row")}</b> in the source (${[...dups].map(i=>"user "+esc(S.rows[i].id)).join(", ")}). ${S.f.dedupe?"Currently removed from the charts.":"Currently counted, which inflates totals; tick “Remove exact duplicate rows” to exclude."}`);
+  const same=S.rows.filter(r=>r.fa&&r.fa===r.ta);
+  if(same.length)dq.push(`<b>${plural(same.length,"same-airport journey")}</b>: ${same.map(r=>`user ${esc(r.id)} (${esc(lab(r.fa))} ${esc(r.ft)} → ${esc(r.tt)})`).join(", ")}. Worth confirming this is a valid selection.`);
+  const miss=S.rows.filter(r=>!r.id||!pd(r.dt)||!r.fa||!r.ta||!r.ft||!r.tt);
+  if(miss.length)dq.push(`<b>${plural(miss.length,"row")}</b> with a missing or invalid field.`);
+  const unk=[...new Set(S.rows.flatMap(r=>[r.fa,r.ta]).filter(n=>n&&!dirOf(n)))];
+  if(unk.length)dq.push(`<b>${plural(unk.length,"airport")}</b> not in the directory: ${unk.map(esc).join(", ")}. Add a city and code under Configure.`);
+  if(false)$("dq").innerHTML=dq.length?`<h3 style="font-size:14px">Data checks</h3>`+dq.map(d=>`<div class="flag">${d}</div>`).join(""):'<span class="okmsg">Data checks passed: no duplicates, gaps or unknown airports.</span>';
+}
+
+/* ---------- editable table ---------- */
+const toLocal=s=>{const d=pd(s);if(!d)return"";const p=n=>String(n).padStart(2,"0");return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`};
+function apOptions(sel){const names=[...new Set([...S.dir.map(d=>d.name),sel].filter(Boolean))];return `<option value="">Select airport</option>`+names.map(n=>`<option value="${esc(n)}"${n===sel?" selected":""}>${esc(lab(n))} · ${esc(city(n))}</option>`).join("")}
+function renderTable(){
+  $("editTable").innerHTML=`<thead><tr><th>User ID</th><th>Status</th><th>Activation date</th><th>From airport</th><th>Term.</th><th>To airport</th><th>Term.</th><th></th></tr></thead><tbody>`+
+  S.rows.map((r,i)=>`<tr data-i="${i}">
+    <td class="w-id"><input id="r${i}-id" data-f="id" value="${esc(r.id)}" inputmode="numeric" aria-label="User ID"></td>
+    <td class="w-st"><input id="r${i}-st" data-f="status" value="${esc(r.status)}" list="statusList" aria-label="Status"></td>
+    <td class="w-dt"><input id="r${i}-dt" data-f="dt" type="datetime-local" step="1" value="${toLocal(r.dt)}" aria-label="Activation date"></td>
+    <td class="w-ap"><select id="r${i}-fa" data-f="fa" aria-label="From airport">${apOptions(r.fa)}</select></td>
+    <td class="w-t"><input id="r${i}-ft" data-f="ft" value="${esc(r.ft)}" aria-label="From terminal"></td>
+    <td class="w-ap"><select id="r${i}-ta" data-f="ta" aria-label="To airport">${apOptions(r.ta)}</select></td>
+    <td class="w-t"><input id="r${i}-tt" data-f="tt" value="${esc(r.tt)}" aria-label="To terminal"></td>
+    <td><button class="danger del" data-i="${i}" aria-label="Delete row">Delete</button></td></tr>`).join("")+
+  `</tbody><datalist id="statusList"><option value="ACTIVATED"></option></datalist>`;
+  markTable();
+}
+function markTable(){const d=dupSet();document.querySelectorAll("#editTable tbody tr").forEach(tr=>{const i=+tr.dataset.i,r=S.rows[i];if(!r)return;tr.classList.toggle("out",!inFilter(r));tr.classList.toggle("dup",d.has(i))})}
+$("editTable").addEventListener("change",e=>{const el=e.target,f=el.dataset.f;if(!f)return;const i=+el.closest("tr").dataset.i;
+  let v=el.value.trim();if(f==="ft"||f==="tt"||f==="status")v=v.toUpperCase();if(f==="dt")v=v.length===16?v+":00":v;
+  S.rows[i][f]=v;if(el.tagName==="INPUT"&&f!=="dt")el.value=v;save();render();});
+$("editTable").addEventListener("click",e=>{const b=e.target.closest(".del");if(!b)return;
+  if(!b.classList.contains("confirming")){b.classList.add("confirming");b.textContent="Confirm";setTimeout(()=>{if(b.isConnected){b.classList.remove("confirming");b.textContent="Delete"}},3000);return}
+  S.rows.splice(+b.dataset.i,1);save();renderTable();render();toast("Row deleted");});
+$("btnAdd").onclick=()=>{const p=n=>String(n).padStart(2,"0"),d=new Date();
+  S.rows.unshift({id:"",status:"ACTIVATED",dt:`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:00`,fa:"",ft:"",ta:"",tt:""});
+  save();renderTable();render();$("r0-id").focus();};
+
+/* ---------- CSV import / export ---------- */
+function parseCSV(t){const out=[];let row=[],cur="",q=false;for(let i=0;i<t.length;i++){const c=t[i];
+  if(q){if(c==='"'){if(t[i+1]==='"'){cur+='"';i++}else q=false}else cur+=c}
+  else if(c==='"')q=true;else if(c===","){row.push(cur);cur=""}else if(c==="\n"||c==="\r"){if(c==="\r"&&t[i+1]==="\n")i++;row.push(cur);out.push(row);row=[];cur=""}else cur+=c}
+  if(cur||row.length){row.push(cur);out.push(row)}return out.filter(r=>r.some(c=>c.trim()))}
+function parseDate(s){s=s.trim();const m=s.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if(m){const mo=MON.findIndex(x=>x.toLowerCase()===m[2].toLowerCase());if(mo<0)return"";const p=n=>String(n).padStart(2,"0");return`${m[3]}-${p(mo+1)}-${p(m[1])}T${p(m[4]||0)}:${p(m[5]||0)}:${p(m[6]||0)}`}
+  const d=pd(s);return d?toLocal(d.toISOString()):""}
+function importRows(text){const g=parseCSV(text);if(!g.length)return{err:"No rows found."};
+  const h=g[0].map(x=>x.trim().toLowerCase());const idx=n=>h.indexOf(n);
+  const need=["user id","status","activation date","from airport","from terminal","to airport","to terminal"];const miss=need.filter(n=>idx(n)<0);
+  if(miss.length)return{err:"Missing columns: "+miss.join(", ")};
+  const rows=g.slice(1).map(c=>({id:(c[idx("user id")]||"").trim(),status:(c[idx("status")]||"").trim().toUpperCase(),dt:parseDate(c[idx("activation date")]||""),fa:(c[idx("from airport")]||"").trim(),ft:(c[idx("from terminal")]||"").trim().toUpperCase(),ta:(c[idx("to airport")]||"").trim(),tt:(c[idx("to terminal")]||"").trim().toUpperCase()}));
+  rows.forEach(r=>[r.fa,r.ta].forEach(n=>{if(n&&!dirOf(n))S.dir.push({name:n,city:"",code:""})}));return{rows}}
+function doImport(mode){const r=importRows($("importText").value);if(r.err){$("importMsg").textContent=r.err;return}
+  S.rows=mode==="replace"?r.rows:S.rows.concat(r.rows);save();renderTable();renderDir();render();$("importBox").hidden=true;$("importText").value="";toast(`${plural(r.rows.length,"row")} ${mode==="replace"?"loaded":"added"}`)}
+$("btnImport").onclick=()=>{$("importBox").hidden=!$("importBox").hidden;$("importMsg").textContent=""};
+$("importCancel").onclick=()=>{$("importBox").hidden=true};
+$("importReplace").onclick=()=>doImport("replace");$("importAppend").onclick=()=>doImport("append");
+$("importFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{$("importText").value=rd.result};rd.readAsText(f)};
+function toCSV(){const q=s=>/[",\n]/.test(s)?`"${String(s).replace(/"/g,'""')}"`:s;
+  const fd=s=>{const d=pd(s);if(!d)return"";const p=n=>String(n).padStart(2,"0");return`${p(d.getDate())}-${MON[d.getMonth()]}-${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`};
+  return["User ID,Status,Activation Date,From Airport,From Terminal,To Airport,To Terminal",...S.rows.map(r=>[r.id,r.status,fd(r.dt),r.fa,r.ft,r.ta,r.tt].map(q).join(","))].join("\n")}
+$("btnCopy").onclick=()=>{const t=toCSV();const fb=()=>{$("copyText").value=t;$("copyBox").hidden=false;$("copyText").select();$("sec-table").scrollIntoView({behavior:"smooth"})};
+  try{navigator.clipboard.writeText(t).then(()=>toast(`Copied ${plural(S.rows.length,"row")} as CSV`),fb)}catch(e){fb()}};
+$("copyClose").onclick=()=>{$("copyBox").hidden=true};
+
+/* ---------- filters ---------- */
+function renderFilters(){const names=[...new Set(S.rows.flatMap(r=>[r.fa,r.ta]).filter(Boolean))].sort((a,b)=>city(a).localeCompare(city(b)));
+  $("fAirport").innerHTML=`<option value="">All airports</option>`+names.map(n=>`<option value="${esc(n)}"${n===S.f.airport?" selected":""}>${esc(lab(n))} · ${esc(city(n))}</option>`).join("");
+  $("fFrom").value=S.f.from;$("fTo").value=S.f.to;$("fDedupe").checked=S.f.dedupe}
+["fFrom","fTo","fAirport"].forEach(id=>$(id).onchange=e=>{S.f[{fFrom:"from",fTo:"to",fAirport:"airport"}[id]]=e.target.value;save();render()});
+$("fDedupe").onchange=e=>{S.f.dedupe=e.target.checked;save();render()};
+$("fClear").onclick=()=>{S.f={from:"",to:"",airport:"",dedupe:S.f.dedupe};renderFilters();save();render()};
+
+/* ---------- config drawer ---------- */
+function renderDir(){$("dirTable").innerHTML=`<tr><th class="bar-sub" style="text-align:left">Full name</th><th class="bar-sub" style="text-align:left">City</th><th class="bar-sub" style="text-align:left">Code</th></tr>`+
+  S.dir.map((d,i)=>`<tr data-i="${i}"><td><input id="d${i}-n" data-f="name" value="${esc(d.name)}" aria-label="Airport name"></td><td><input id="d${i}-c" data-f="city" value="${esc(d.city)}" aria-label="City"></td><td class="c3"><input id="d${i}-k" data-f="code" value="${esc(d.code)}" maxlength="4" aria-label="Code"></td></tr>`).join("")}
+$("dirTable").addEventListener("change",e=>{const el=e.target,f=el.dataset.f;if(!f)return;const i=+el.closest("tr").dataset.i;let v=el.value.trim();if(f==="code")v=v.toUpperCase();
+  const old=S.dir[i].name;S.dir[i][f]=v;if(f==="name"&&old&&v)S.rows.forEach(r=>{if(r.fa===old)r.fa=v;if(r.ta===old)r.ta=v});save();renderTable();renderFilters();render()});
+$("dirAdd").onclick=()=>{S.dir.push({name:"",city:"",code:""});save();renderDir();$(`d${S.dir.length-1}-n`).focus()};
+function renderCfg(){$("cfgTitle").value=S.cfg.title;$("cfgTopN").value=S.cfg.topN;$("cfgTermRoutes").checked=S.cfg.termRoutes;$("cfgSort").value=S.cfg.sort;
+  $("cfgSections").innerHTML=SECTIONS.map(([k,l])=>`<label class="check"><input type="checkbox" id="sec_${k}" data-k="${k}"${S.cfg.sections[k]?" checked":""}> ${esc(l)}</label>`).join("");renderDir()}
+$("cfgSections").addEventListener("change",e=>{S.cfg.sections[e.target.dataset.k]=e.target.checked;save();render()});
+$("cfgTitle").oninput=e=>{S.cfg.title=e.target.value||"Airport Activation Dashboard";save();$("title").textContent=S.cfg.title};
+$("cfgTopN").onchange=e=>{S.cfg.topN=Math.max(1,Math.min(50,+e.target.value||10));e.target.value=S.cfg.topN;save();render()};
+$("cfgTermRoutes").onchange=e=>{S.cfg.termRoutes=e.target.checked;save();render()};
+$("cfgSort").onchange=e=>{S.cfg.sort=e.target.value;save();render()};
+$("btnConfig").onclick=()=>{renderCfg();$("drawer").hidden=false;$("cfgTitle").focus()};
+$("drawerClose").onclick=()=>{$("drawer").hidden=true;$("btnConfig").focus()};
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("drawer").hidden){$("drawer").hidden=true}});
+$("btnReset").onclick=e=>{const b=e.currentTarget;if(!b.classList.contains("confirming")){b.classList.add("confirming");b.textContent="Click again to reset";setTimeout(()=>{b.classList.remove("confirming");b.textContent="Reset to original data"},3000);return}
+  S=fresh();save();renderCfg();renderFilters();renderTable();render();b.classList.remove("confirming");b.textContent="Reset to original data";toast("Original data restored")};
+
+let tt;function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2200)}
+
+renderFilters();renderTable();render();
+</script>
+</body>
+</html>
